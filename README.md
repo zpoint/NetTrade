@@ -3,17 +3,17 @@
 本脚本只是针对 ETF拯救世界 在以下地方提到过的闲钱网格的探索测试以及记录，不构成任何建议
 
 策略来源:
-[闲散资金的策略-微博问答 2017-03-22](https://weibo.com/ttwenda/p/show?id=2310684088171439759396)
-[网格说明-雪球 2015年9月2日](https://xueqiu.com/4776750571/55799950)
-[有没有博友愿意为大家做道题？ 2013年8月23日](https://www.chinaetfs.net/?p=895)
-[网格操作记录 2012年6月25日](https://www.chinaetfs.net/?p=757)
+* [闲散资金的策略-微博问答 2017-03-22](https://weibo.com/ttwenda/p/show?id=2310684088171439759396)
+* [网格说明-雪球 2015年9月2日](https://xueqiu.com/4776750571/55799950)
+* [有没有博友愿意为大家做道题？ 2013年8月23日](https://www.chinaetfs.net/?p=895)
+* [网格操作记录 2012年6月25日](https://www.chinaetfs.net/?p=757)
 
 数据来源:
-[集思录分享](https://www.jisilu.cn/question/55996)
-[螺丝钉分享](https://xueqiu.com/1997857856/62838103)
+* [集思录分享](https://www.jisilu.cn/question/55996)
+* [螺丝钉分享](https://xueqiu.com/1997857856/62838103)
 
 计算方法:
-[估值计算方法](http://fund.eastmoney.com/news/1594,20170322722385868.html)
+* [估值计算方法](http://fund.eastmoney.com/news/1594,20170322722385868.html)
 
 ### 策略概述
 
