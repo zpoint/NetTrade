@@ -1,0 +1,14 @@
+[build-system]
+requires=["flit"]
+build-backend="flit.buildapi"
+
+[tool.flit.metadata]
+module="NetTrade"
+author="zpoint"
+author-email="zp@zp0int.com"
+home-page="https://github.com/zpoint/NetTrade"
+classifiers=["License :: OSI Approved :: MIT License"]
+requires=["idataapi-transform", "requests"]
+requires-python=">=3.5.2"
+keywords="NetTrade eft拯救世界 网格策略 网格"
+dist-name="NetTrade"

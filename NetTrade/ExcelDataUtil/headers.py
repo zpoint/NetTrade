@@ -16,9 +16,11 @@ class Headers(object):
     @staticmethod
     def filter_en2cn(item):
         new_item = {k: v for k, v in zip(Headers.fields_cn_order, item)}
-        print(new_item)
         return new_item
 
     @staticmethod
     def filter_cn2en(item):
-        return tuple(item[k] for k in Headers.fields_cn_order)
+        for float_keys in ("value", "shares", "money", "timestamp"):
+            item[Headers.fields_en2cn_map[float_keys]] = round(float(item[Headers.fields_en2cn_map[float_keys]]), 3)
+        r = tuple(item[k] for k in Headers.fields_cn_order)
+        return r

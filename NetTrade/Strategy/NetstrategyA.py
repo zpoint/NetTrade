@@ -1,49 +1,78 @@
 import time
 import math
+import logging
 from ..Variables.Status import Status
 
 class NetstrategyA(object):
-    def __init__(self, operate_history, price_per_net, range_percent=0.03, growth_rate=0.2, init_val=None):
+    def __init__(self, operate_history, range_percent=0.03, growth_rate=0.2):
         """
-        :param operate_history: [(value1, money1, shares, timestamp, date_str， status), (value2, money2, shares, timestamp, date_str, status) ... ]
-        :param price_per_net: 初始每网价格
+        :param operate_history: [(value1, shares, money1, date_str， status, timestamp), (value2, shares, money2, date_str, status, timestamp) ... ]
         :param range_percent: 幅度, e.g 0.03
         :param growth_rate: 每网增加幅度 0.2
-        :param init_val: initial value (第一次买入净值)
         """
         self.operate_history = operate_history
         self.buy_history_including_sold, self.sell_history, self.buy_history, \
         self.curr_buy_money, self.sum_shares, self.curr_shares_worth, \
-        self.total_base_money, self.total_current_money = self.split_history()
-        if init_val is None:
-            self.init_val = self.operate_history[0][0]
-        else:
-            self.init_val = init_val
-        self.price_per_net = price_per_net
+        self.total_base_money, self.total_current_money, self.curr_val = self.split_history()
+        self.init_val = self.operate_history[0][0]
         self.range_percent = range_percent
         self.growth_rate = growth_rate
 
+    def re_static(self):
+        self.buy_history_including_sold, self.sell_history, self.buy_history, \
+        self.curr_buy_money, self.sum_shares, self.curr_shares_worth, \
+        self.total_base_money, self.total_current_money, self.curr_val = self.split_history()
+        self.init_val = self.operate_history[0][0]
+
     def calc_next_buy_sell_val(self):
         """
-        :return: ((buy_value, buy_money, buy_shares), (sell_value, sell_money, sell_shares))
+        :return: ((buy_value, buy_shares, buy_money), (sell_value, sell_shares, sell_money))
         """
         if not self.buy_history:
-            return (self.init_val, self.price_per_net), None
+            return None, None
 
-        latest_buy_value, latest_buy_money, latest_shares, latest_buy_ts, latest_buy_date, status = self.buy_history[-1]
-        next_fall_value = latest_buy_value * (1 - self.range_percent)
-        next_fall_money = next_fall_value * (1 + self.growth_rate)
+        latest_buy_value, latest_buy_money = self.buy_history[-1][0], self.buy_history[-1][2]
+
+        next_fall_value = round(latest_buy_value * (1 - self.range_percent), 3)
+        next_fall_money = latest_buy_money * (1 + self.growth_rate)
         next_fall_shares = int(next_fall_money / next_fall_value + 1) # 取整数份额
         next_fall_money = next_fall_value * next_fall_shares
 
         next_grow_value = latest_buy_value * (1 + self.range_percent)
-
+        r = math.modf(next_grow_value * 1000)
+        if r[0]:
+            next_grow_value = (r[1] + 1) / 1000
+        else:
+            next_grow_value = r[1] / 1000
         next_grow_shares = 0
         need_sell_history_index_including = self.bin_search(next_grow_value)
         for each in self.buy_history[need_sell_history_index_including:]:
-            next_grow_shares += each[2]
+            next_grow_shares += each[1]
         next_grow_money = next_grow_shares * next_grow_value
-        return (next_fall_value, next_fall_money, next_fall_shares), (next_grow_value, next_grow_money, next_grow_shares)
+
+        return (round(next_fall_value, 4), round(next_fall_shares, 4), round(next_fall_money, 4)), \
+               (round(next_grow_value, 4), round(next_grow_shares, 4), round(next_grow_money, 4))
+
+    def calc_curr_buy_sell_val(self, curr_val):
+        tup1, tup2 = self.calc_next_buy_sell_val()
+        next_buy_value, next_buy_shares, next_buy_money = tup1
+        next_sell_value, next_sell_shares, next_sell_money = tup2
+        if curr_val > next_sell_value:
+            # there are some shares need to be sold, but currently hold
+            need_sell_history_index_including = self.bin_search(curr_val)
+            next_grow_shares = 0
+            for each in self.buy_history[need_sell_history_index_including:]:
+                next_grow_shares += each[1]
+            next_grow_money = next_grow_shares * curr_val
+            return None, (curr_val, next_grow_shares, round(next_grow_money, 4))
+        elif curr_val < next_buy_value:
+            # need to buy more, price is lower than curr_val
+            x = math.log(curr_val / self.buy_history[-1][0], 1-self.range_percent)
+            next_fall_money = self.buy_history[-1][2] * math.pow(1 + self.range_percent, x)
+            next_fall_shares = int(next_fall_money / curr_val + 1) # 取整数份额
+            next_fall_money = curr_val * next_fall_shares
+            return (curr_val, next_fall_shares, round(next_fall_money, 4)), None
+        return None, None
 
     def bin_search(self, value, begin=None, end=None):
         if begin is None:
@@ -52,80 +81,117 @@ class NetstrategyA(object):
             end = len(self.buy_history) - 1
 
         if begin == end: # terminate
-            if value >= self.buy_history[begin][0]:
+            if value > self.buy_history[begin][0]:
                 return begin
             return end + 1 if end != len(self.buy_history) - 1 else None
 
         middle = int((begin + end) / 2)
         if value == self.buy_history[middle][0]:
-            # best match
-            return middle
+            # best match, 不能卖出相同净值的买入份额
+            return self.bin_search(value, middle, middle)
         elif value < self.buy_history[middle][0]:
             return self.bin_search(value, middle+1, end)
         elif value > self.buy_history[middle][0]:
             return self.bin_search(value, begin, middle)
 
-    def split_history(self, curr_val=None):
-        """
-        :param curr_val: 当前净值，不提供则按照最后次交易计算
-        """
+    def split_history(self):
         buy_history_including_sold = list()
         sell_history = list()
         buy_history = list()
         curr_buy_money = 0 # 当前投入的钱数 (还未卖出的钱数的和)
         sum_shares = 0 # 当前持有份额
         curr_shares_worth = 0 # 投入部分当前市值(净值为 curr_val)
-        total_base_money = 0 # 总的使用过的钱数(当前投入的本金 + 卖出的本金)
         total_current_money = 0 # 总的当前的钱数(投入部分当前市值 + 卖出部分获得的金额)
+        total_sell_money = 0 # 总的卖出获得的金额
+
+        curr_used_money = 0  # 当前占用本金
+        curr_not_used_money = 0  # 当前卖出未占用本金
         # 总收益率 = total_current_money / total_base_money
         for each in self.operate_history:
-            if each["status"] == Status.BUY:
+            if each[4] == Status.BUY:
+                curr_used_money += each[2]
+                curr_not_used_money -= each[2]
+                if curr_not_used_money < 0:
+                    curr_not_used_money = 0
                 buy_history_including_sold.append(each)
                 buy_history.append(each)
-                total_base_money += each[1]
-            elif each["status"] == Status.SELL:
+            elif each[4] == Status.SELL:
                 sell_history.append(each)
-                total_current_money += each[1]
+                total_sell_money += each[2]
                 max_index = len(buy_history)-1
                 for i in range(max_index, -1, -1):
                     max_index = i
-                    if buy_history[max_index][0] > each[0]:
+                    if buy_history[max_index][0] >= each[0]:
                         break
+                need_sell_history = buy_history[max_index + 1:]
+                sold_rest_money = sum(i[2] for i in need_sell_history)
+                curr_used_money -= sold_rest_money
+                curr_not_used_money += sold_rest_money
                 buy_history = buy_history[:max_index+1]
             else:
                 raise ValueError("Unknown status: %s" % (str(each), ))
 
         for i in buy_history:
-            curr_buy_money += i[1]
-            sum_shares += i[2]
-        curr_val = curr_val if curr_val else self.operate_history[-1][0]
+            curr_buy_money += i[2]
+            sum_shares += i[1]
+        curr_val = self.operate_history[-1][0]
         curr_shares_worth = sum_shares * curr_val
-        total_current_money += curr_buy_money
+        total_current_money = round(curr_shares_worth + total_sell_money, 2)
         return buy_history_including_sold, sell_history, buy_history, curr_buy_money, \
-               sum_shares, curr_shares_worth, total_base_money, total_current_money
+               sum_shares, curr_shares_worth, round(curr_used_money + curr_not_used_money, 3), total_current_money, curr_val
 
     def print_status(self):
         print("操作历史:")
         if not self.operate_history:
             print("无任何操作记录")
         else:
-            print("%-10s\t%-10s\t%-10s\t%-10s\t%-10s" % ("净值", "金额", "份额", "日期", "操作"))
-        for each in self.operate_history:
-            print("%-10s\t%-10s\t%-10s\t%-10s\t%-10s" % (str(each[0]), str(each[1]), str(each[2]), str(each[4]), Status.CN_MAP[str(each[5])]))
+            buy_history = list()
+            curr_used_money = 0 # 当前占用本金
+            curr_not_used_money = 0 # 当前卖出未占用本金
+            print("%-10s\t%-10s\t%-10s\t%-10s\t%-20s\t%-15s\t%-10s" % ("净值", "份额", "金额", "操作", "日期", "当前动用过本金", "当前收益率"))
+            for each in self.operate_history:
+                total_current_money = 0  # 总的当前的钱数(投入部分当前市值 + 卖出部分获得的金额)
+                if each[4] == Status.BUY:
+                    curr_used_money += each[2]
+                    curr_not_used_money -= each[2]
+                    if curr_not_used_money < 0:
+                        curr_not_used_money = 0
+                    buy_history.append(each)
+                else:
+                    max_index = len(buy_history) - 1
+                    for i in range(max_index, -1, -1):
+                        max_index = i
+                        if buy_history[max_index][0] >= each[0]:
+                            break
 
-        print("当前投入的钱数 (还未卖出的钱数的和): ", self.curr_buy_money)
-        print("当前持有份额: ", self.sum_shares)
-        print("投入部分当前市值: ", self.curr_shares_worth)
-        print("总的使用过的钱数(当前投入的本金 + 卖出的本金): ", self.total_base_money)
-        print("总的当前的钱数(投入部分当前市值 + 卖出部分获得的金额): ", self.total_current_money)
-        rate = self.total_current_money / self.total_base_money
-        print("当前总收益率: %.2f" % (rate * 100))
-        ts_begin = int(self.operate_history[0][3])
+                    need_sell_history = buy_history[max_index + 1:]
+                    sold_rest_money = sum(i[2] for i in need_sell_history)
+                    curr_used_money -= sold_rest_money
+                    curr_not_used_money += sold_rest_money
+                    buy_history = buy_history[:max_index + 1]
+                    total_current_money += each[0] * sum(i[1] for i in need_sell_history)
+                sum_shares = sum(i[1] for i in buy_history)
+                total_current_money += sum_shares * each[0]
+                total_used_base_money = curr_used_money + curr_not_used_money
+                rate = (total_current_money - total_used_base_money) / total_used_base_money
+                print("%-10s\t%-10s\t%-10s\t%-10s\t%-20s\t%-20s\t%-10s" % (str(each[0]), str(each[1]), str(each[2]),
+                                                                           Status.CN_MAP[str(each[4])], each[3],
+                                                                           round(total_used_base_money, 3), "%.2f%%" % (rate * 100, )))
+
+        print("\n%s" % ("当前投入的钱数 (还未卖出的钱数的和):                  ", ), round(self.curr_buy_money, 3))
+        print("%s" % ("当前持有份额:                                      ", ), self.sum_shares)
+        print("%s" % ("投入部分当前市值:                                   ", ), round(self.curr_shares_worth, 3))
+        print("%s" % ("总的使用过的本金(当前投入的本金 + 卖出的本金):         ", ), self.total_base_money)
+        print("%s" % ("总的当前的资产(投入部分当前市值 + 卖出部分获得的金额):  ", ), self.total_current_money)
+        rate = (self.total_current_money - self.total_base_money) / self.total_base_money
+        print("%s" % ("当前总收益:                                         %.2f  " % (self.total_current_money - self.total_base_money, )))
+        print("%s" % ("当前收益率:                                         %.2f%% " % (rate * 100)), )
+        ts_begin = int(self.operate_history[0][5])
         ts_now = int(time.time())
         days_interval = (ts_now - ts_begin) / (24 * 3600)
         years_interval = days_interval / 365
         if years_interval < 1:
-            average_year_rate = rate / years_interval
+            average_year_rate = (365 * rate / days_interval) if days_interval else 0
         else:
             average_year_rate = math.pow(rate, 1 / years_interval)
-        print("第一份到最后份时长: %.2f 天, 平均年化: %.2f" % (rate * 100, average_year_rate * 100))
+        print("\n%s" % ("第一份到最后份时长: %.2f 天, 平均年化: %.2f%%            " % (days_interval, average_year_rate * 100)), )

@@ -12,9 +12,5 @@ def datetime2timestamp(dt):
     """
     datetime2timestamp("2016-1-1 12:12:12") -> 1471234567
     """
-    if "T" in dt:
-        struct_time = time.strptime(dt, "%Y-%m-%dT%H:%M:%S")
-        return int(time.mktime(struct_time)) + utc_distance
-    else:
-        struct_time = time.strptime(dt, "%Y-%m-%d %H:%M:%S")
-        return int(time.mktime(struct_time))
+    struct_time = time.strptime(dt, "%Y-%m-%d %H:%M:%S")
+    return int(time.mktime(struct_time))
