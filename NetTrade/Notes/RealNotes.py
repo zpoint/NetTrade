@@ -26,10 +26,11 @@ class RealNotes(object):
         print("\n\n下次买入价格: %-8s\t买入份额: %-8s\t买入金额: %-8s" % (buy_value, buy_shares, buy_money))
         print("下次卖出价格: %-8s\t卖出份额: %-8s\t卖出金额: %-8s\n\n" % (sell_value, sell_shares, sell_money))
 
-    def buy(self, value, money, ts=None):
+    def buy(self, value, shares, ts=None):
         operation_history = XlsxDataGetter.get_data(self.file_name, raise_if_not_exist=False)
         # "value", "shares", "money", "date_str", "status", "timestamp"]
-        shares = int(money / value + 1) # 整数份额
+        if shares % 100 != 0:
+            raise ValueError("请输入100的整数倍份额")
         money = shares * value
         if ts is None:
             ts = int(time.time())
@@ -58,4 +59,4 @@ class RealNotes(object):
             sell_value, sell_shares, sell_money = tup_sell
             print("当前净值涨幅过大: 需要加大卖出，价格: %-8s\t卖出份额: %-8s\t卖出金额: %-8s\n" % (sell_value, sell_shares, sell_money))
         else:
-            print("当前净值波动在合理范围内")
+            print("\n当前净值波动在合理范围内\n")

@@ -87,6 +87,31 @@ n = 入网次数-出网次数 (n = 0)
 
 ##### 测试策略历史收益
 
+##### 单日过大跌幅/涨幅记录
+
+    from NetTrade.Notes.RealNotes import RealNotes
+    from NetTrade.Strategy.NetstrategyA import NetstrategyA
+
+    def note():
+        r = RealNotes("sz162411", NetstrategyA, range_percent=0.03, growth_rate=0.2)
+        # r.buy(0.50, 1000)
+        # r.buy(0.485, 1201)
+        # r.buy(0.47, 1441)
+        # r.sell(0.485, 3066)
+        # r.calc_next_val()
+        r.pr_status()
+        r.calc_curr_val(0.60)
+        # 当前净值涨幅过大: 需要加大卖出，价格: 0.6     	卖出份额: 4478.0  	卖出金额: 2686.8 
+        r.calc_curr_val(0.30)
+        # 当前净值跌幅过大，需要加大买入, 价格: 0.3     	买入份额: 6383    	买入金额: 1914.9
+
+def history():
+    pass
+
+if __name__ == "__main__":
+    note()
+
+
 ##### 自定义策略
 * 待开发
 
