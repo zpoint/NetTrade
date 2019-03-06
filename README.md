@@ -95,7 +95,7 @@ n = 入网次数-出网次数 (n = 0)
     from NetTrade.Strategy.NetstrategyA import NetstrategyA
 
     if __name__ == "__main__":
-    	# 目前只实现了策略A： NetstrategyA
+        # 目前只实现了策略A： NetstrategyA
         # 目前只有来自集思录的数据源分享: jsl
         # 测试代码华宝油气: sz162411
         # 开始入第一网的净值: 0.6
