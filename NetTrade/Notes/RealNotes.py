@@ -22,9 +22,12 @@ class RealNotes(object):
             self.init_strategy()
         tup_buy, tup_sell = self.strategy.calc_next_buy_sell_val()
         buy_value, buy_shares, buy_money = tup_buy
-        sell_value, sell_shares, sell_money = tup_sell
         print("\n\n下次买入价格: %-8s\t买入份额: %-8s\t买入金额: %-8s" % (buy_value, buy_shares, buy_money))
-        print("下次卖出价格: %-8s\t卖出份额: %-8s\t卖出金额: %-8s\n\n" % (sell_value, sell_shares, sell_money))
+        if tup_sell:
+            sell_value, sell_shares, sell_money = tup_sell
+            print("下次卖出价格: %-8s\t卖出份额: %-8s\t卖出金额: %-8s\n\n" % (sell_value, sell_shares, sell_money))
+        else:
+            print("份额已卖完，无下次卖出价格\n")
 
     def buy(self, value, shares, ts=None):
         operation_history = XlsxDataGetter.get_data(self.file_name, raise_if_not_exist=False)
