@@ -4,6 +4,7 @@ from ..ExcelDataUtil.xlsxDataWriter import XlsxDataWriter
 from ..Util.dateUtil import timestamp2datetime
 from ..Variables.Status import Status
 
+
 class RealNotes(object):
     def __init__(self, code, strategy, **kwargs):
         self.file_name = code + ".xlsx"

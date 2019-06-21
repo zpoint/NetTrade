@@ -40,7 +40,7 @@ class NetstrategyA(object):
 
         next_fall_value = round(latest_buy_value * (1 - self.range_percent), 3)
         next_fall_money = latest_buy_money * (1 + self.growth_rate)
-        next_fall_shares = int(math.ceil(next_fall_money / next_fall_value / 100) * 100) # 取100的整数份额
+        next_fall_shares = int(math.ceil(next_fall_money / next_fall_value / 100) * 100)  # 取100的整数份额
         next_fall_money = next_fall_value * next_fall_shares
 
         next_grow_value = latest_buy_value * (1 + self.range_percent)
@@ -108,11 +108,11 @@ class NetstrategyA(object):
         buy_history_including_sold = list()
         sell_history = list()
         buy_history = list()
-        curr_buy_money = 0 # 当前投入的钱数 (还未卖出的钱数的和)
+        curr_buy_money = 0  # 当前投入的钱数 (还未卖出的钱数的和)
         sum_shares = 0 # 当前持有份额
-        curr_shares_worth = 0 # 投入部分当前市值(净值为 curr_val)
-        total_current_money = 0 # 总的当前的钱数(投入部分当前市值 + 卖出部分获得的金额)
-        already_sold_money = 0 # 总的卖出获得的金额
+        curr_shares_worth = 0  # 投入部分当前市值(净值为 curr_val)
+        total_current_money = 0  # 总的当前的钱数(投入部分当前市值 + 卖出部分获得的金额)
+        already_sold_money = 0  # 总的卖出获得的金额
 
         curr_used_money = 0  # 当前占用本金
         curr_not_used_money = 0  # 当前卖出未占用本金
@@ -138,10 +138,12 @@ class NetstrategyA(object):
                     need_sell_history = buy_history
                     max_index = -1
                 else:
+                    sum_shares = 0
                     for i in range(max_index, -1, -1):
                         max_index = i
-                        if buy_history[max_index][0] >= each[0]:
+                        if buy_history[max_index][0] >= each[0] or sum_shares >= each[1]:
                             break
+                        sum_shares += buy_history[max_index][1]
                     need_sell_history = buy_history[max_index + 1:]
                 sold_rest_money = sum(i[2] for i in need_sell_history)
                 curr_used_money -= sold_rest_money
