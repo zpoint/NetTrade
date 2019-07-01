@@ -109,7 +109,7 @@ class NetstrategyA(object):
         sell_history = list()
         buy_history = list()
         curr_buy_money = 0  # 当前投入的钱数 (还未卖出的钱数的和)
-        sum_shares = 0 # 当前持有份额
+        sum_shares = 0  # 当前持有份额
         curr_shares_worth = 0  # 投入部分当前市值(净值为 curr_val)
         total_current_money = 0  # 总的当前的钱数(投入部分当前市值 + 卖出部分获得的金额)
         already_sold_money = 0  # 总的卖出获得的金额
@@ -153,6 +153,7 @@ class NetstrategyA(object):
             else:
                 raise ValueError("Unknown status: %s" % (str(each), ))
 
+        sum_shares = 0
         for i in buy_history:
             curr_buy_money += i[2]
             sum_shares += i[1]
